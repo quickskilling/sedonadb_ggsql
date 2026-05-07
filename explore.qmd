@@ -1,0 +1,87 @@
+
+```{python}
+import polars as pl
+import pyarrow as pa
+import sedona.db
+import ggsql
+
+# https://sedona.apache.org/sedonadb/latest/memory-management/?h=options#configuring-memory-limits
+sd = sedona.db.connect()
+sd.options.interactive = True
+sd.options.memory_limit = "6gb"
+sd.options.memory_pool_type = "fair"
+sd.options.unspillable_reserve_ratio = 0.4
+sd.options.temp_dir = "/tmp/sedona-spill"
+```
+
+```{python}
+cities = sd.read_parquet(
+    "https://raw.githubusercontent.com/geoarrow/geoarrow-data/v0.2.0/natural-earth/files/natural-earth_cities_geo.parquet")
+countries = sd.read_parquet(
+    "https://raw.githubusercontent.com/geoarrow/geoarrow-data/v0.2.0/natural-earth/files/natural-earth_countries_geo.parquet"
+)
+countries_geography = sd.read_parquet(
+    "https://raw.githubusercontent.com/geoarrow/geoarrow-data/v0.2.0/natural-earth/files/natural-earth_countries-geography_geo.parquet")
+```
+
+
+```{python}
+countries.to_view("countries", overwrite=True)
+cities.to_view("cities", overwrite=True)
+```
+
+```{python}
+cities_new_names = sd.sql("""
+SELECT name as city_name, 
+    geometry as city_geometry,
+    ST_AsText(geometry) AS city_wkt_geometry,
+    ST_X(geometry) AS city_x,
+    ST_Y(geometry) AS city_y
+FROM cities
+""")
+countries_new_names = sd.sql("""
+SELECT name as country_name,
+    geometry as country_geometry,
+    ST_AsText(geometry) AS country_wkt_geometry
+FROM countries
+""")
+```
+
+```{python}
+cities_new_names.to_view("cities", overwrite=True)
+countries_new_names.to_view("countries", overwrite=True)
+```
+
+```{python}
+# join the cities and countries tables
+dat_joined = sd.sql("""
+select * from cities
+join countries
+where ST_Intersects(cities.city_geometry, countries.country_geometry)
+""")
+dat_joined.to_view('dat_joined')
+dat_joined.show()
+```
+
+
+```{python}
+dat_arrow = dat_joined.to_arrow_table()
+dat_polars = pl.from_arrow(dat_arrow)
+```
+
+
+
+```{python}
+#| fig.width: 600
+chart = ggsql.render_altair(dat_polars.select('city_x', 'city_y'),
+    "VISUALISE city_x AS x, city_y as y DRAW point")
+chart.display()
+```
+
+
+```{python}
+chart.save("chart.svg", format='svg')  # Save to file
+
+```
+
+
