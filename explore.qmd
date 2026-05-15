@@ -68,20 +68,3 @@ dat_joined.show()
 dat_arrow = dat_joined.to_arrow_table()
 dat_polars = pl.from_arrow(dat_arrow)
 ```
-
-
-
-```{python}
-#| fig.width: 600
-chart = ggsql.render_altair(dat_polars.select('city_x', 'city_y'),
-    "VISUALISE city_x AS x, city_y as y DRAW point")
-chart.display()
-```
-
-
-```{python}
-chart.save("chart.svg", format='svg')  # Save to file
-
-```
-
-

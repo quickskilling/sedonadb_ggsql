@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.4"
+__generated_with = "0.23.5"
 app = marimo.App(width="full")
 
 
@@ -18,7 +18,7 @@ def _():
     import sedona.db
     import ggsql
 
-    return ggsql, pl, sedona
+    return pl, sedona
 
 
 @app.cell
@@ -166,7 +166,7 @@ def _(mo):
 
     SedonaDB doesn't have a `.to_polars()` method. However, we can use `.to_arrow_table()` and then use polar's `pl.from_arrow()` function to get the data into polars.
 
-    - _Note 1: Notice in an above chunk the `ST_AsText(geometry)` funtion in the SQL code. This get's the spatial values in a format that polars can handle. The geometry typed columns are not currently handled by polars. Also the next code chunk will show a warning `sys:1: UserWarning: Extension type 'geoarrow.wkb' is not registered; loading as its storage type.` that can be ignored.
+    - _Note 1: Notice in an above chunk the `ST_AsText(geometry)` funtion in the SQL code. This get's the spatial values in a format that polars can handle. The geometry typed columns are not currently handled by polars. Also the next code chunk will show a warning `sys:1: UserWarning: Extension type 'geoarrow.wkb' is not registered; loading as its storage type.` that can be ignored._
     """)
     return
 
@@ -227,84 +227,12 @@ def _(sd):
     joined_df = sd.read_parquet(
         "joined_df.parquet"
     )
-
     return (joined_df,)
 
 
 @app.cell
 def _(joined_df):
     joined_df.limit(10).show()
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ### Plotting with ggsql
-
-    https://pypi.org/project/ggsql/
-
-    ```python
-    import ggsql
-    import pyarrow as pa
-
-    # Create a table
-    table = pa.table({
-        "x": [1, 2, 3, 4, 5],
-        "y": [10, 20, 15, 30, 25],
-        "category": ["A", "B", "A", "B", "A"]
-    })
-
-    # Render to Altair chart
-    chart = ggsql.render_altair(table, "VISUALISE x, y DRAW point")
-
-    # Display or save
-    chart.display()  # In Jupyter
-    chart.save("chart.html")  # Save to file
-    ```
-    """)
-    return
-
-
-@app.cell
-def _(ggsql, pl):
-    # Create a DataFrame
-    df1 = pl.DataFrame({
-        "x": [1, 2, 3, 4, 5],
-        "y": [10, 20, 15, 30, 25],
-        "category": ["A", "B", "A", "B", "A"]
-    })
-
-    # Render to Altair chart
-    chart1 = ggsql.render_altair(df1, "VISUALISE x, y DRAW point")
-
-    # Display or save
-    chart1.display()  # In Jupyter
-    return
-
-
-@app.cell
-def _(dat_polars):
-    dat_polars.limit(5)
-    return
-
-
-@app.cell
-def _(dat_polars):
-    dat_polars.select('city_x', 'city_y')
-    return
-
-
-@app.cell
-def _(dat_polars, ggsql):
-    chart = ggsql.render_altair(dat_polars.select('city_x', 'city_y'),
-        "VISUALISE city_x AS x, city_y as y DRAW point")
-    chart.display()
-    return
-
-
-@app.cell
-def _():
     return
 
 
